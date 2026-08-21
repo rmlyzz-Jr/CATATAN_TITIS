@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jadwal Kegiatan Kabid Bina Marga</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3a5f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Jadwal Kegiatan">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg">
+
+<style>
+  :root{
+    --navy:#1e3a5f;
+    --navy-dark:#132a45;
+    --blue:#2f6fed;
+    --blue-light:#e8f0fe;
+    --bg:#f4f6fa;
+    --card:#ffffff;
+    --text:#1f2937;
+    --muted:#6b7280;
+    --border:#e5e7eb;
+    --green:#16a34a;
+    --amber:#d97706;
+    --red:#dc2626;
+    --gray:#6b7280;
+    --radius:14px;
+    --shadow:0 4px 16px rgba(30,58,95,0.08);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Segoe UI', Roboto, -apple-system, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+  }
+  header{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--blue) 100%);
+    color:#fff;
+    padding:22px 24px 18px;
+    box-shadow:var(--shadow);
+  }
+  header h1{font-size:19px; font-weight:700; letter-spacing:.3px;}
+  header p{font-size:12.5px; opacity:.85; margin-top:3px;}
+
+  .tabs{
+    display:flex;
+    background:#fff;
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:20;
+  }
+  .tab-btn{
+    flex:1;
+    padding:14px 10px;
+    text-align:center;
+    font-size:14px;
+    font-weight:600;
+    color:var(--muted);
+    background:none;
+    border:none;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    transition:.2s;
+  }
+  .tab-btn.active{color:var(--blue); border-bottom-color:var(--blue);}
+
+  .container{max-width:760px; margin:0 auto; padding:18px 16px 60px;}
+  .tab-content{display:none;}
+  .tab-content.active{display:block; animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .card h2{font-size:15px; margin-bottom:14px; color:var(--navy-dark);}
+
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .form-grid .full{grid-column:1/-1;}
+  .field{display:flex; flex-direction:column; gap:5px;}
+  .field label{font-size:12.5px; font-weight:600; color:var(--muted);}
+  .field input, .field select, .field textarea{
+    padding:10px 12px;
+    border:1.5px solid var(--border);
+    border-radius:9px;
+    font-size:14px;
+    font-family:inherit;
+    background:#fbfcfe;
+    color:var(--text);
+    transition:.15s;
+    width:100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none; border-color:var(--blue); background:#fff;
+  }
+  textarea{resize:vertical; min-height:56px;}
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:11px 18px;
+    border:none;
+    border-radius:9px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .btn-primary{background:var(--blue); color:#fff; width:100%; margin-top:6px;}
+  .btn-primary:hover{background:#2559c2;}
+  .btn-primary:disabled{opacity:.6; cursor:not-allowed;}
+  .btn-ghost{background:var(--blue-light); color:var(--blue); padding:7px 12px; font-size:12.5px;}
+  .btn-danger{background:#fde8e8; color:var(--red); padding:7px 12px; font-size:12.5px;}
+  .btn-danger:disabled{opacity:.6; cursor:not-allowed;}
+  .btn-secondary{background:#f1f3f6; color:var(--text);}
+  .btn-secondary:hover{background:#e5e7eb;}
+
+  .toast{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px);
+    background:var(--navy-dark); color:#fff; padding:12px 20px; border-radius:10px;
+    font-size:13.5px; box-shadow:0 8px 24px rgba(0,0,0,.25);
+    opacity:0; pointer-events:none; transition:.25s; z-index:100; max-width:88%; text-align:center;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast.error{background:var(--red);}
+
+  .month-nav{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .month-nav .nav-btn{
+    width:36px; height:36px; border-radius:50%; border:1.5px solid var(--border);
+    background:#fff; font-size:16px; cursor:pointer; color:var(--navy);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .month-nav .nav-btn:active{background:var(--blue-light);}
+  .month-nav .month-label{font-size:16px; font-weight:700; color:var(--navy-dark);}
+
+  .day-strip{
+    display:flex; gap:8px; overflow-x:auto; padding:4px 2px 12px;
+    scroll-snap-type:x proximity;
+  }
+  .day-strip::-webkit-scrollbar{height:5px;}
+  .day-strip::-webkit-scrollbar-thumb{background:#d1d5db; border-radius:6px;}
+  .day-chip{
+    flex:0 0 auto; scroll-snap-align:center;
+    width:52px; padding:9px 4px; border-radius:12px;
+    background:#fff; border:1.5px solid var(--border);
+    text-align:center; cursor:pointer; transition:.15s;
+  }
+  .day-chip .dname{font-size:10.5px; color:var(--muted); text-transform:uppercase;}
+  .day-chip .dnum{font-size:16px; font-weight:700; color:var(--text); margin-top:2px;}
+  .day-chip.today{border-color:var(--blue);}
+  .day-chip.today .dnum{color:var(--blue);}
+  .day-chip.has-event::after{content:''; display:block; width:5px; height:5px; border-radius:50%; background:var(--blue); margin:4px auto 0;}
+  .day-chip.selected{background:var(--blue); border-color:var(--blue);}
+  .day-chip.selected .dname, .day-chip.selected .dnum{color:#fff;}
+
+  .selected-date-label{
+    font-size:13.5px; font-weight:600; color:var(--muted); margin:2px 0 12px;
+  }
+
+  .event-card{
+    background:#fff; border-radius:12px; padding:14px 16px; margin-bottom:12px;
+    box-shadow:var(--shadow); border-left:4px solid var(--blue);
+  }
+  .event-card.status-terjadwal{border-left-color:var(--blue);}
+  .event-card.status-berlangsung{border-left-color:var(--amber);}
+  .event-card.status-selesai{border-left-color:var(--green);}
+  .event-card.status-ditunda{border-left-color:var(--amber);}
+  .event-card.status-dibatalkan{border-left-color:var(--red); opacity:.7;}
+
+  .event-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .event-time{font-size:13px; font-weight:700; color:var(--navy); white-space:nowrap;}
+  .event-title{
+    font-size:15px; font-weight:700; margin:4px 0 6px; color:var(--text);
+    cursor:pointer; transition:.15s; display:inline-flex; align-items:center; gap:5px;
+  }
+  .event-title:hover{color:var(--blue); text-decoration:underline;}
+  .event-title .hint-icon{font-size:12px; opacity:.55;}
+  .badge{
+    display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700;
+  }
+  .badge-terjadwal{background:#e8f0fe; color:var(--blue);}
+  .badge-berlangsung{background:#fff7e0; color:var(--amber);}
+  .badge-selesai{background:#e6f7ec; color:var(--green);}
+  .badge-ditunda{background:#fff1e0; color:var(--amber);}
+  .badge-dibatalkan{background:#fde8e8; color:var(--red);}
+
+  .event-meta{font-size:13px; color:var(--muted); margin:3px 0; display:flex; gap:6px;}
+  .event-meta b{color:var(--text); font-weight:600;}
+  .event-actions{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+  .event-actions select{
+    padding:6px 8px; border-radius:8px; border:1.5px solid var(--border); font-size:12.5px;
+  }
+
+  .empty-state{
+    text-align:center; padding:40px 10px; color:var(--muted);
+  }
+  .empty-state .icon{font-size:34px; margin-bottom:8px;}
+
+  .loader{
+    text-align:center; padding:30px; color:var(--muted); font-size:13.5px;
+  }
+  .spinner{
+    width:26px; height:26px; border:3px solid var(--border); border-top-color:var(--blue);
+    border-radius:50%; margin:0 auto 10px; animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(17,24,39,.48);
+    display:flex; align-items:flex-end; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
+    z-index:200; padding:0;
+  }
+  .modal-overlay.show{opacity:1; pointer-events:auto;}
+  .modal-box{
+    background:#fff; width:100%; max-width:520px;
+    border-radius:20px 20px 0 0;
+    max-height:88vh; display:flex; flex-direction:column;
+    transform:translateY(24px); transition:transform .22s ease;
+    box-shadow:0 -8px 30px rgba(0,0,0,.18);
+  }
+  .modal-overlay.show .modal-box{transform:translateY(0);}
+  @media (min-width:560px){
+    .modal-overlay{align-items:center;}
+    .modal-box{border-radius:18px; max-height:85vh;}
+  }
+  .modal-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 20px 14px; border-bottom:1px solid var(--border);
+  }
+  .modal-header h3{font-size:16px; font-weight:700; color:var(--navy-dark);}
+  .modal-close-x{
+    width:30px; height:30px; border-radius:50%; border:none; background:#f1f3f6;
+    color:var(--muted); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .modal-close-x:hover{background:#e5e7eb;}
+  .modal-body{
+    padding:18px 20px; overflow-y:auto; flex:1;
+  }
+  .modal-footer{
+    display:flex; gap:10px; padding:14px 20px 20px; border-top:1px solid var(--border);
+  }
+  .modal-footer .btn{flex:1; margin-top:0;}
+
+  .drag-handle{
+    width:38px; height:4px; background:var(--border); border-radius:4px;
+    margin:10px auto -2px;
+  }
+  @media (min-width:560px){ .drag-handle{display:none;} }
+
+  @media (min-width:640px){
+    header{padding:26px 32px 20px;}
+    header h1{font-size:21px;}
+    .tabs{max-width:700px; margin:0 auto;}
+    .container{max-width:700px; padding:22px 20px 60px;}
+    .card{padding:24px;}
+    .form-grid{grid-template-columns:repeat(3, 1fr);}
+    .form-grid .full{grid-column:1/-1;}
+    .day-chip{width:58px; padding:10px 4px;}
+    .event-actions select{font-size:13px;}
+  }
+
+  @media (min-width:1024px){
+    body{background:linear-gradient(180deg, var(--bg) 0%, #eef1f7 100%);}
+    header{padding:30px 0;}
+    header .header-inner, .tabs-inner{max-width:960px; margin:0 auto;}
+    header h1{font-size:23px;}
+    header p{font-size:13.5px;}
+    .tabs{max-width:960px; margin:0 auto; border-radius:0;}
+    .tab-btn{padding:16px 10px; font-size:14.5px;}
+    .container{max-width:960px; padding:28px 24px 70px;}
+    #tab-input .card{max-width:820px; margin:0 auto; padding:32px 36px;}
+    #tab-input .form-grid{grid-template-columns:repeat(4, 1fr); gap:16px;}
+    #tab-input .form-grid .field:nth-child(5){grid-column:1/-1;}
+    #tab-input .btn-primary{max-width:320px; margin-left:auto; margin-right:auto;}
+    #tab-jadwal .card{padding:26px 30px;}
+    .day-chip{width:64px; padding:11px 4px; cursor:pointer;}
+    .day-chip:hover{border-color:var(--blue);}
+    .event-card{padding:18px 22px; transition:box-shadow .15s;}
+    .event-card:hover{box-shadow:0 6px 20px rgba(30,58,95,0.14);}
+    .event-title{font-size:16px;}
+    .modal-box{max-width:600px;}
+    .modal-body .form-grid{grid-template-columns:repeat(3, 1fr); gap:14px;}
+    #formEdit .form-grid .field:nth-child(5){grid-column:1/-1;}
+  }
+
+  @media (min-width:1400px){
+    .container{max-width:1040px;}
+    #tab-input .card{max-width:880px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <h1>📋 Jadwal Kegiatan</h1>
+    <p>Kepala Bidang Bina Marga</p>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="input">➕ Input Kegiatan</button>
+  <button class="tab-btn" data-tab="jadwal">🗓️ Jadwal Kegiatan</button>
+</div>
+
+<div class="container">
+
+  <div class="tab-content active" id="tab-input">
+    <div class="card">
+      <h2>Tambah Kegiatan Baru</h2>
+      <form id="formInput">
+        <div class="form-grid">
+          <div class="field">
+            <label>Tanggal</label>
+            <input type="date" id="f-tanggal" required>
+          </div>
+          <div class="field">
+            <label>Hari</label>
+            <input type="text" id="f-hari" placeholder="Otomatis" disabled>
+          </div>
+          <div class="field">
+            <label>Jam Mulai</label>
+            <input type="time" id="f-jamMulai" step="60" required>
+          </div>
+          <div class="field">
+            <label>Jam Selesai</label>
+            <input type="time" id="f-jamSelesai" step="60" required>
+          </div>
+          <div class="field full">
+            <label>Kegiatan</label>
+            <input type="text" id="f-kegiatan" placeholder="Nama / uraian kegiatan" required>
+          </div>
+          <div class="field">
+            <label>Kategori</label>
+            <select id="f-kategori">
+              <option>Rapat</option>
+              <option>Kunjungan Lapangan</option>
+              <option>Koordinasi</option>
+              <option>Sosialisasi</option>
+              <option>Monitoring & Evaluasi</option>
+              <option>Dinas Luar</option>
+              <option>Lainnya</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="f-status">
+              <option>Terjadwal</option>
+              <option>Berlangsung</option>
+              <option>Selesai</option>
+              <option>Ditunda</option>
+              <option>Dibatalkan</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Lokasi</label>
+            <input type="text" id="f-lokasi" placeholder="Lokasi kegiatan">
+          </div>
+          <div class="field full">
+            <label>Dispo (Disposisi)</label>
+            <input type="text" id="f-dispo" placeholder="Contoh: Didisposisikan ke Kasi ...">
+          </div>
+          <div class="field full">
+            <label>Catatan</label>
+            <textarea id="f-catatan" placeholder="Catatan tambahan (opsional)"></textarea>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="btnSimpan">💾 Simpan Kegiatan</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-jadwal">
+    <div class="card">
+      <div class="month-nav">
+        <button class="nav-btn" id="prevMonth">‹</button>
+        <div class="month-label" id="monthLabel">-</div>
+        <button class="nav-btn" id="nextMonth">›</button>
+      </div>
+      <div class="day-strip" id="dayStrip"></div>
+      <div class="selected-date-label" id="selectedDateLabel"></div>
+      <div id="eventsList"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="drag-handle"></div>
+    <div class="modal-header">
+      <h3>Detail Kegiatan</h3>
+      <button type="button" class="modal-close-x" id="modalCloseX">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="formEdit">
+        <input type="hidden" id="e-rowIndex">
+        <div class="form-grid">
+          <div class="field">
+            <label>Tanggal</label>
+            <input type="date" id="e-tanggal" required>
+          </div>
+          <div class="field">
+            <label>Hari</label>
+            <input type="text" id="e-hari" placeholder="Otomatis" disabled>
+          </div>
+          <div class="field">
+            <label>Jam Mulai</label>
+            <input type="time" id="e-jamMulai" step="60" required>
+          </div>
+          <div class="field">
+            <label>Jam Selesai</label>
+            <input type="time" id="e-jamSelesai" step="60" required>
+          </div>
+          <div class="field full">
+            <label>Kegiatan</label>
+            <input type="text" id="e-kegiatan" placeholder="Nama / uraian kegiatan" required>
+          </div>
+          <div class="field">
+            <label>Kategori</label>
+            <select id="e-kategori">
+              <option>Rapat</option>
+              <option>Kunjungan Lapangan</option>
+              <option>Koordinasi</option>
+              <option>Sosialisasi</option>
+              <option>Monitoring & Evaluasi</option>
+              <option>Dinas Luar</option>
+              <option>Lainnya</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select id="e-status">
+              <option>Terjadwal</option>
+              <option>Berlangsung</option>
+              <option>Selesai</option>
+              <option>Ditunda</option>
+              <option>Dibatalkan</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Lokasi</label>
+            <input type="text" id="e-lokasi" placeholder="Lokasi kegiatan">
+          </div>
+          <div class="field full">
+            <label>Dispo (Disposisi)</label>
+            <input type="text" id="e-dispo" placeholder="Contoh: Didisposisikan ke Kasi ...">
+          </div>
+          <div class="field full">
+            <label>Catatan</label>
+            <textarea id="e-catatan" placeholder="Catatan tambahan (opsional)"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="btnTutupModal">Tutup</button>
+      <button type="button" class="btn btn-primary" id="btnUpdateModal">💾 Update</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const HARI_NAMA = ['Minggu','Senin','Selasa','Rabu','Kamis',"Jum'at",'Sabtu'];
+const BULAN_NAMA = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const STORAGE_KEY = 'jadwalKegiatan';
+
+let allJadwal = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+let currentViewDate = new Date();
+let selectedDate = new Date();
+selectedDate.setHours(0,0,0,0);
+
+function fmtLocal(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function generateId(){
+  return Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+}
+
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(allJadwal));
+}
+
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(()=> t.className='toast', 2600);
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='jadwal') renderMonthView();
+  });
+});
+
+const fTanggal = document.getElementById('f-tanggal');
+const fHari = document.getElementById('f-hari');
+fTanggal.value = fmtLocal(new Date());
+function updateHariField(){
+  if(!fTanggal.value) { fHari.value=''; return; }
+  const d = new Date(fTanggal.value + 'T00:00:00');
+  fHari.value = HARI_NAMA[d.getDay()];
+}
+updateHariField();
+fTanggal.addEventListener('change', updateHariField);
+
+document.getElementById('formInput').addEventListener('submit', function(e){
+  e.preventDefault();
+  const btn = document.getElementById('btnSimpan');
+  btn.disabled = true;
+  btn.textContent = 'Menyimpan...';
+
+  const data = {
+    id: generateId(),
+    tanggal: fTanggal.value,
+    hari: fHari.value,
+    jamMulai: document.getElementById('f-jamMulai').value,
+    jamSelesai: document.getElementById('f-jamSelesai').value,
+    kegiatan: document.getElementById('f-kegiatan').value,
+    kategori: document.getElementById('f-kategori').value,
+    status: document.getElementById('f-status').value,
+    lokasi: document.getElementById('f-lokasi').value,
+    dispo: document.getElementById('f-dispo').value,
+    catatan: document.getElementById('f-catatan').value
+  };
+
+  allJadwal.push(data);
+  saveData();
+  showToast('Kegiatan berhasil disimpan!');
+  document.getElementById('formInput').reset();
+  fTanggal.value = fmtLocal(new Date());
+  updateHariField();
+  btn.disabled = false;
+  btn.textContent = '💾 Simpan Kegiatan';
+});
+
+document.getElementById('prevMonth').addEventListener('click', ()=>{
+  currentViewDate.setMonth(currentViewDate.getMonth()-1);
+  renderMonthView();
+});
+document.getElementById('nextMonth').addEventListener('click', ()=>{
+  currentViewDate.setMonth(currentViewDate.getMonth()+1);
+  renderMonthView();
+});
+
+function renderMonthView(){
+  document.getElementById('monthLabel').textContent =
+    BULAN_NAMA[currentViewDate.getMonth()] + ' ' + currentViewDate.getFullYear();
+
+  const year = currentViewDate.getFullYear();
+  const month = currentViewDate.getMonth();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  const eventDatesSet = new Set(allJadwal.map(j=>j.tanggal));
+  const todayStr = fmtLocal(new Date());
+
+  const strip = document.getElementById('dayStrip');
+  strip.innerHTML = '';
+  let selectedChip = null;
+
+  for(let d=1; d<=daysInMonth; d++){
+    const dateObj = new Date(year, month, d);
+    const dateStr = fmtLocal(dateObj);
+    const chip = document.createElement('div');
+    chip.className = 'day-chip';
+    if(dateStr === todayStr) chip.classList.add('today');
+    if(eventDatesSet.has(dateStr)) chip.classList.add('has-event');
+    if(dateStr === fmtLocal(selectedDate)) chip.classList.add('selected');
+
+    chip.innerHTML = `<div class="dname">${HARI_NAMA[dateObj.getDay()].slice(0,3)}</div><div class="dnum">${d}</div>`;
+    chip.addEventListener('click', ()=>{
+      selectedDate = dateObj;
+      renderMonthView();
+    });
+    strip.appendChild(chip);
+    if(dateStr === fmtLocal(selectedDate)) selectedChip = chip;
+  }
+
+  renderEventsForSelectedDate();
+
+  setTimeout(()=>{
+    if(selectedChip) selectedChip.scrollIntoView({inline:'center', behavior:'smooth', block:'nearest'});
+  }, 50);
+}
+
+function renderEventsForSelectedDate(){
+  const dateStr = fmtLocal(selectedDate);
+  const label = document.getElementById('selectedDateLabel');
+  const isToday = dateStr === fmtLocal(new Date());
+  label.textContent = (isToday ? 'Hari ini • ' : '') + HARI_NAMA[selectedDate.getDay()] + ', ' +
+    selectedDate.getDate() + ' ' + BULAN_NAMA[selectedDate.getMonth()] + ' ' + selectedDate.getFullYear();
+
+  const items = allJadwal
+    .filter(j => j.tanggal === dateStr)
+    .sort((a,b)=> (a.jamMulai||'').localeCompare(b.jamMulai||''));
+
+  const list = document.getElementById('eventsList');
+
+  if(items.length === 0){
+    list.innerHTML = `<div class="empty-state"><div class="icon">🗒️</div>Tidak ada kegiatan pada tanggal ini.</div>`;
+    return;
+  }
+
+  list.innerHTML = items.map(renderEventCard).join('');
+
+  list.querySelectorAll('[data-view-id]').forEach(titleEl=>{
+    titleEl.addEventListener('click', function(){
+      openEditModal(this.getAttribute('data-view-id'));
+    });
+  });
+
+  list.querySelectorAll('[data-status-id]').forEach(sel=>{
+    sel.addEventListener('change', function(){
+      const id = this.getAttribute('data-status-id');
+      const item = allJadwal.find(j => j.id === id);
+      if(item) {
+        item.status = this.value;
+        saveData();
+        showToast('Status diperbarui');
+        renderEventsForSelectedDate();
+      }
+    });
+  });
+
+  list.querySelectorAll('[data-delete-id]').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const id = this.getAttribute('data-delete-id');
+      if(!confirm('Hapus kegiatan ini?')) return;
+      allJadwal = allJadwal.filter(j => j.id !== id);
+      saveData();
+      showToast('Kegiatan dihapus');
+      renderMonthView();
+    });
+  });
+}
+
+function statusClass(status){
+  const map = {'Terjadwal':'terjadwal','Berlangsung':'berlangsung','Selesai':'selesai','Ditunda':'ditunda','Dibatalkan':'dibatalkan'};
+  return map[status] || 'terjadwal';
+}
+
+function escapeHtml(str){
+  if(!str) return '';
+  return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function renderEventCard(j){
+  const sc = statusClass(j.status);
+  return `
+  <div class="event-card status-${sc}">
+    <div class="event-top">
+      <div class="event-time">${j.jamMulai || '--:--'} – ${j.jamSelesai || '--:--'}</div>
+      <span class="badge badge-${sc}">${j.status || 'Terjadwal'}</span>
+    </div>
+    <div class="event-title" data-view-id="${j.id}" title="Klik untuk lihat & edit detail">
+      ${escapeHtml(j.kegiatan)} <span class="hint-icon">✎</span>
+    </div>
+    <div class="event-meta">🏷️ <b>${escapeHtml(j.kategori||'-')}</b></div>
+    ${j.lokasi ? `<div class="event-meta">📍 ${escapeHtml(j.lokasi)}</div>` : ''}
+    ${j.dispo ? `<div class="event-meta">➡️ Dispo: <b>${escapeHtml(j.dispo)}</b></div>` : ''}
+    ${j.catatan ? `<div class="event-meta">📝 ${escapeHtml(j.catatan)}</div>` : ''}
+    <div class="event-actions">
+      <select data-status-id="${j.id}">
+        ${['Terjadwal','Berlangsung','Selesai','Ditunda','Dibatalkan'].map(s=>`<option ${s===j.status?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <button type="button" class="btn btn-danger" data-delete-id="${j.id}">🗑️ Hapus</button>
+    </div>
+  </div>`;
+}
+
+const modalOverlay = document.getElementById('modalOverlay');
+const eTanggal = document.getElementById('e-tanggal');
+const eHari = document.getElementById('e-hari');
+
+function updateEHariField(){
+  if(!eTanggal.value){ eHari.value=''; return; }
+  const d = new Date(eTanggal.value + 'T00:00:00');
+  eHari.value = HARI_NAMA[d.getDay()];
+}
+eTanggal.addEventListener('change', updateEHariField);
+
+function openEditModal(id){
+  const item = allJadwal.find(j => j.id === id);
+  if(!item){
+    showToast('Data tidak ditemukan.', true);
+    return;
+  }
+  document.getElementById('e-id').value = item.id;
+  eTanggal.value = item.tanggal || '';
+  updateEHariField();
+  document.getElementById('e-jamMulai').value = item.jamMulai || '';
+  document.getElementById('e-jamSelesai').value = item.jamSelesai || '';
+  document.getElementById('e-kegiatan').value = item.kegiatan || '';
+  document.getElementById('e-kategori').value = item.kategori || 'Rapat';
+  document.getElementById('e-status').value = item.status || 'Terjadwal';
+  document.getElementById('e-lokasi').value = item.lokasi || '';
+  document.getElementById('e-dispo').value = item.dispo || '';
+  document.getElementById('e-catatan').value = item.catatan || '';
+
+  const btnUpdate = document.getElementById('btnUpdateModal');
+  btnUpdate.disabled = false;
+  btnUpdate.textContent = '💾 Update';
+
+  modalOverlay.classList.add('show');
+}
+
+function closeEditModal(){
+  modalOverlay.classList.remove('show');
+}
+
+document.getElementById('modalCloseX').addEventListener('click', closeEditModal);
+document.getElementById('btnTutupModal').addEventListener('click', closeEditModal);
+modalOverlay.addEventListener('click', function(e){
+  if(e.target === modalOverlay) closeEditModal();
+});
+
+document.getElementById('btnUpdateModal').addEventListener('click', function(){
+  const form = document.getElementById('formEdit');
+  if(!form.reportValidity()) return;
+
+  const id = document.getElementById('e-id').value;
+  const index = allJadwal.findIndex(j => j.id === id);
+  if(index === -1){
+    showToast('Data tidak ditemukan.', true);
+    return;
+  }
+
+  allJadwal[index] = {
+    ...allJadwal[index],
+    tanggal: eTanggal.value,
+    hari: eHari.value,
+    jamMulai: document.getElementById('e-jamMulai').value,
+    jamSelesai: document.getElementById('e-jamSelesai').value,
+    kegiatan: document.getElementById('e-kegiatan').value,
+    kategori: document.getElementById('e-kategori').value,
+    status: document.getElementById('e-status').value,
+    lokasi: document.getElementById('e-lokasi').value,
+    dispo: document.getElementById('e-dispo').value,
+    catatan: document.getElementById('e-catatan').value
+  };
+
+  saveData();
+  showToast('Kegiatan berhasil diperbarui.');
+  closeEditModal();
+  renderMonthView();
+});
+
+// Tambahkan hidden field id di modal
+const formEdit = document.getElementById('formEdit');
+const hiddenId = document.createElement('input');
+hiddenId.type = 'hidden';
+hiddenId.id = 'e-id';
+formEdit.prepend(hiddenId);
+
+// Inisialisasi
+renderMonthView();
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){
+    try {
+      navigator.serviceWorker.register('sw.js').catch(function(err){
+        console.warn('Service worker gagal didaftarkan:', err);
+      });
+    } catch (err) {
+      console.warn('Service worker tidak didukung di lingkungan ini:', err);
+    }
+  });
+}
+</script>
+</body>
+</html>
